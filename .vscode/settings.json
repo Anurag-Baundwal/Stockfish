@@ -1,0 +1,13 @@
+{
+  "files.associations": {
+    "atomic": "cpp",
+    "cassert": "cpp",
+    "chrono": "cpp",
+    "cmath": "cpp",
+    "cstdint": "cpp",
+    "initializer_list": "cpp",
+    "list": "cpp",
+    "string": "cpp",
+    "utility": "cpp"
+  }
+}
