@@ -136,16 +136,19 @@ struct SharedState {
     SharedState(const OptionsMap&                                         optionsMap,
                 ThreadPool&                                               threadPool,
                 TranspositionTable&                                       transpositionTable,
-                const LazyNumaReplicatedSystemWide<Eval::NNUE::Networks>& nets) :
+                const LazyNumaReplicatedSystemWide<Eval::NNUE::Networks>& nets,
+                ButterflyHistory&                                         butterflyHistory) :
         options(optionsMap),
         threads(threadPool),
         tt(transpositionTable),
-        networks(nets) {}
+        networks(nets),
+        mainHistory(butterflyHistory) {}
 
     const OptionsMap&                                         options;
     ThreadPool&                                               threads;
     TranspositionTable&                                       tt;
     const LazyNumaReplicatedSystemWide<Eval::NNUE::Networks>& networks;
+    ButterflyHistory&                                         mainHistory; 
 };
 
 class Worker;
@@ -279,7 +282,7 @@ class Worker {
     void ensure_network_replicated();
 
     // Public because they need to be updatable by the stats
-    ButterflyHistory mainHistory;
+    ButterflyHistory& mainHistory;
     LowPlyHistory    lowPlyHistory;
 
     CapturePieceToHistory captureHistory;

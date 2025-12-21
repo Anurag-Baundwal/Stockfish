@@ -164,6 +164,7 @@ Search::Worker::Worker(SharedState&                    sharedState,
     threads(sharedState.threads),
     tt(sharedState.tt),
     networks(sharedState.networks),
+    mainHistory(sharedState.mainHistory),
     refreshTable(networks[token]) {
     clear();
 }
@@ -573,7 +574,7 @@ void Search::Worker::undo_null_move(Position& pos) { pos.undo_null_move(); }
 
 // Reset histories, usually before a new game
 void Search::Worker::clear() {
-    mainHistory.fill(68);
+    // mainHistory.fill(68);
     captureHistory.fill(-689);
     pawnHistory.fill(-1238);
     pawnCorrectionHistory.fill(5);

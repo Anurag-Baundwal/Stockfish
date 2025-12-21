@@ -66,6 +66,8 @@ Engine::Engine(std::optional<std::string> path) :
         std::make_unique<NN::NetworkSmall>(NN::EvalFile{EvalFileDefaultNameSmall, "None", ""},
                                            NN::EmbeddedNNUEType::SMALL))) {
 
+    mainHistory.fill(68);
+
     pos.set(StartFEN, false, &states->back());
 
     options.add(  //
@@ -166,6 +168,8 @@ void Engine::stop() { threads.stop = true; }
 void Engine::search_clear() {
     wait_for_search_finished();
 
+    mainHistory.fill(68);
+
     tt.clear(threads);
     threads.clear();
 
@@ -240,7 +244,10 @@ void Engine::set_numa_config_from_option(const std::string& o) {
 
 void Engine::resize_threads() {
     threads.wait_for_search_finished();
-    threads.set(numaContext.get_numa_config(), {options, threads, tt, networks}, updateContext);
+
+    mainHistory.fill(68);
+
+    threads.set(numaContext.get_numa_config(), {options, threads, tt, networks, mainHistory}, updateContext);
 
     // Reallocate the hash with the new threadpool size
     set_tt_size(options["Hash"]);
