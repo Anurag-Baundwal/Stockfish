@@ -313,7 +313,13 @@ Thread* ThreadPool::get_best_thread() const {
 
     // Vote according to score and depth, and select the best thread
     auto thread_voting_value = [minScore](Thread* th) {
-        return (th->worker->rootMoves[0].score - minScore + 14) * int(th->worker->completedDepth);
+        // We use double for calculation to prevent overflow before casting back to int64_t
+        double scoreDelta = double(th->worker->rootMoves[0].score - minScore + 14);
+        double depth = double(th->worker->completedDepth);
+        
+        // Logic: score^1.5 * depth^0.5
+        // Optimized: score * sqrt(score * depth)
+        return int64_t(scoreDelta * std::sqrt(scoreDelta * depth));
     };
 
     for (auto&& th : threads)
