@@ -304,20 +304,29 @@ Thread* ThreadPool::get_best_thread() const {
     Thread* bestThread = threads.front().get();
     Value   minScore   = VALUE_NONE;
 
-    std::unordered_map<Move, int64_t, Move::MoveHash> votes(
-      2 * std::min(size(), bestThread->worker->rootMoves.size()));
+    size_t mapSize = 2 * std::min(size(), bestThread->worker->rootMoves.size());
+    std::unordered_map<Move, int64_t, Move::MoveHash> votes(mapSize);
+    std::unordered_map<Move, int, Move::MoveHash>     moveCounts(mapSize);
 
     // Find the minimum score of all threads
     for (auto&& th : threads)
         minScore = std::min(minScore, th->worker->rootMoves[0].score);
 
-    // Vote according to score and depth, and select the best thread
+    // Vote according to sqrt(score) and sqrt(depth)
     auto thread_voting_value = [minScore](Thread* th) {
-        return (th->worker->rootMoves[0].score - minScore + 14) * int(th->worker->completedDepth);
+        // Ensure the value inside sqrt is non-negative
+        auto scoreTerm = std::max(0, int(th->worker->rootMoves[0].score - minScore + 14));
+        
+        // Per your request: sqrt(score term) * sqrt(depth)
+        return int64_t(std::sqrt(scoreTerm) * std::sqrt(th->worker->completedDepth));
     };
 
-    for (auto&& th : threads)
-        votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th.get());
+    // Accumulate votes and count how many threads voted for each move
+    for (auto&& th : threads) {
+        Move m = th->worker->rootMoves[0].pv[0];
+        votes[m] += thread_voting_value(th.get());
+        moveCounts[m]++;
+    }
 
     for (auto&& th : threads)
     {
@@ -327,8 +336,11 @@ Thread* ThreadPool::get_best_thread() const {
         const auto& bestThreadPV = bestThread->worker->rootMoves[0].pv;
         const auto& newThreadPV  = th->worker->rootMoves[0].pv;
 
-        const auto bestThreadMoveVote = votes[bestThreadPV[0]];
-        const auto newThreadMoveVote  = votes[newThreadPV[0]];
+        // --- NEW CONSENSUS LOGIC ---
+        // Calculate the consensus score: TotalVotes * sqrt(NumberOfVotes)
+        
+        double bestThreadConsensus = votes[bestThreadPV[0]] * std::sqrt(moveCounts[bestThreadPV[0]]);
+        double newThreadConsensus  = votes[newThreadPV[0]] * std::sqrt(moveCounts[newThreadPV[0]]);
 
         const bool bestThreadInProvenWin = is_win(bestThreadScore);
         const bool newThreadInProvenWin  = is_win(newThreadScore);
@@ -357,8 +369,8 @@ Thread* ThreadPool::get_best_thread() const {
         }
         else if (newThreadInProvenWin || newThreadInProvenLoss
                  || (!is_loss(newThreadScore)
-                     && (newThreadMoveVote > bestThreadMoveVote
-                         || (newThreadMoveVote == bestThreadMoveVote && betterVotingValue))))
+                     && (newThreadConsensus > bestThreadConsensus // Compare weighted consensus
+                         || (newThreadConsensus == bestThreadConsensus && betterVotingValue))))
             bestThread = th.get();
     }
 
