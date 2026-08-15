@@ -1657,6 +1657,10 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
     assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= VALUE_INFINITE);
     assert(PvNode || (alpha == beta - 1));
 
+    // Check for the available remaining time
+    if (is_mainthread() && (nodes.load(std::memory_order_relaxed) & 4095) == 0)
+        main_manager()->check_time(*this);
+    
     // Check if we have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
     {
