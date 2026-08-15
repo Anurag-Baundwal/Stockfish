@@ -1787,7 +1787,7 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if ((!givesCheck || ss->ply > rootDepth + 2) && move.to_sq() != prevSq
+            if ((!givesCheck || ss->ply > rootDepth + PvNode) && move.to_sq() != prevSq
                 && !is_loss(futilityBase) && move.type_of() != PROMOTION)
             {
                 if (moveCount > 2)
