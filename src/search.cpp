@@ -1787,13 +1787,19 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if ((!givesCheck || ss->ply > rootDepth + 2) && move.to_sq() != prevSq
-                && !is_loss(futilityBase) && move.type_of() != PROMOTION)
+            if (move.to_sq() != prevSq && !is_loss(futilityBase)
+                && move.type_of() != PROMOTION)
             {
-                if (moveCount > 2)
+                // Dynamic check margin: starts high at shallow QS and decays linearly with depth
+                int qsDepth = std::max(0, ss->ply - rootDepth);
+                Value checkBonus = givesCheck ? Value(std::max(0, 384 - 128 * qsDepth)) : VALUE_ZERO;
+
+                // MoveCount limit: 2 moves for regular captures, but gives checks extra allowance at shallow plies
+                int moveLimit = 2 + (givesCheck ? std::max(0, 2 - qsDepth) : 0);
+                if (moveCount > moveLimit)
                     continue;
 
-                Value futilityValue = futilityBase + PieceValue[pos.piece_on(move.to_sq())];
+                Value futilityValue = futilityBase + PieceValue[pos.piece_on(move.to_sq())] + checkBonus;
 
                 // If static eval + value of piece we are going to capture is
                 // much lower than alpha, we can prune this move.
@@ -1805,9 +1811,9 @@ Value Search::Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta)
 
                 // If static exchange evaluation is low enough
                 // we can prune this move.
-                if (!pos.see_ge(move, alpha - futilityBase))
+                if (!pos.see_ge(move, alpha - futilityBase - checkBonus))
                 {
-                    bestValue = std::max(bestValue, std::min(alpha, futilityBase));
+                    bestValue = std::max(bestValue, std::min(alpha, futilityBase + checkBonus));
                     continue;
                 }
             }
