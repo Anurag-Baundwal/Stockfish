@@ -35,6 +35,9 @@ namespace Eval {
 // in the Makefile/Fishtest.
 #define EvalFileDefaultName "nn-c9e480e92425.nnue"
 
+// The evaluation is scaled by EvalScale / 1000 for the search
+constexpr int EvalScale = 750;
+
 namespace NNUE {
 class Network;
 struct AccumulatorCaches;
