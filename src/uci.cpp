@@ -34,7 +34,6 @@
 
 #include "benchmark.h"
 #include "engine.h"
-#include "evaluate.h"
 #include "memory.h"
 #include "movegen.h"
 #include "position.h"
@@ -548,8 +547,7 @@ WinRateParams win_rate_params(const Position& pos) {
     double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
     double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
 
-    // The model was fitted to evaluations before they were scaled by EvalScale
-    return {a * Eval::EvalScale / 1000, b * Eval::EvalScale / 1000};
+    return {a, b};
 }
 
 // The win rate model is 1 / (1 + exp((a - eval) / b)), where a = p_a(material) and b = p_b(material).
