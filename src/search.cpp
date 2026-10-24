@@ -1292,9 +1292,13 @@ moves_loop:  // When in check, search starts here
                                  - 1175 * ttMoveHistory / 114178 - (ss->ply > rootDepth) * 38;
                 int tripleMargin = 70 + 279 * PvNode - 188 * !ttCapture + 81 * ss->ttPv - corrValAdj
                                  - (ss->ply > rootDepth) * 43;
+                int quadMargin = 300 + 279 * PvNode - 188 * !ttCapture + 81 * ss->ttPv - corrValAdj;
 
-                extension =
-                  1 + (value < singularBeta - doubleMargin) + (value < singularBeta - tripleMargin);
+                // Quadruple extensions are only allowed in the upper half of the tree,
+                // so that they cannot pile up along a line and explode the search
+                extension = 1 + (value < singularBeta - doubleMargin)
+                          + (value < singularBeta - tripleMargin)
+                          + (2 * ss->ply < rootDepth && value < singularBeta - quadMargin);
 
                 depth++;
             }
