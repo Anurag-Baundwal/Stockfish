@@ -1326,7 +1326,7 @@ moves_loop:  // When in check, search starts here
             // If the ttMove is assumed to fail high over current beta or
             // if we are on a cutNode
             else if (ttData.value >= beta || cutNode)
-                extension = -3;
+                extension = -4;
         }
 
         u64 nodeCount = rootNode ? u64(nodes) : 0;
