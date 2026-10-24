@@ -1279,6 +1279,15 @@ moves_loop:  // When in check, search starts here
 
             ss->excludedMove = move;
             value = search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+
+            // If the ttMove is not singular but the reduced search did not reach
+            // beta, we would reduce the ttMove below. Verify first with a search
+            // at beta whether other moves also fail high, so that we can do
+            // multi-cut pruning instead.
+            if (value >= singularBeta && value < beta && (ttData.value >= beta || cutNode))
+                value =
+                  std::max(value, search<NonPV>(pos, ss, beta - 1, beta, singularDepth, cutNode));
+
             ss->excludedMove = Move::none();
 
             if (value < singularBeta)
