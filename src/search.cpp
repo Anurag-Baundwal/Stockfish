@@ -1147,13 +1147,36 @@ moves_loop:  // When in check, search starts here
     MovePicker mp(pos, ttData.move, depth, &mainHistory, &lowPlyHistory, &captureHistory, contHist,
                   &sharedHistory, ss->ply);
 
+    // At the root, search the PV move first and then the other moves in order of
+    // decreasing effort, the nodes spent on them in previous iterations. A move
+    // that took many nodes to refute is the most likely new best move. Moves with
+    // equal effort, as in the first iteration, keep the move picker order.
+    Move rootOrder[MAX_MOVES];
+    int  rootCount = 0, rootIdx = 0;
+    if (rootNode)
+    {
+        while ((move = mp.next_move()) != Move::none())
+            rootOrder[rootCount++] = move;
+
+        assert(rootCount && rootOrder[0] == ttData.move);
+
+        auto effort = [&](Move m) {
+            auto rm = std::find(rootMoves.begin(), rootMoves.end(), m);
+            return rm != rootMoves.end() ? rm->effort : 0;
+        };
+        std::stable_sort(rootOrder + 1, rootOrder + rootCount,
+                         [&](Move a, Move b) { return effort(a) > effort(b); });
+    }
+
     value = bestValue;
 
     int moveCount = 0;
 
     // Step 14. Loop through all legal moves until no moves remain
     // or a beta cutoff occurs.
-    while ((move = mp.next_move()) != Move::none())
+    while ((move = rootNode ? (rootIdx < rootCount ? rootOrder[rootIdx++] : Move::none())
+                            : mp.next_move())
+           != Move::none())
     {
         assert(move.is_ok());
 
