@@ -1394,7 +1394,7 @@ moves_loop:  // When in check, search starts here
             r += (givesCheck ? -r : r) / 4;
 
         // Increase reduction if alpha has been raised
-        r += 384 * alphaRaiseCount;
+        r += 192 * alphaRaiseCount;
 
         // Apply the computed LMR
         if (depth >= 2 && moveCount > 1)
