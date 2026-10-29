@@ -1149,7 +1149,8 @@ moves_loop:  // When in check, search starts here
 
     value = bestValue;
 
-    int moveCount = 0;
+    int moveCount      = 0;
+    u64 firstMoveNodes = 0;
 
     // Step 14. Loop through all legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1477,6 +1478,15 @@ moves_loop:  // When in check, search starts here
 
             u64 N      = nodes - nodeCount;
             u64 E_prev = std::max(u64(1), rm.effort - N);
+
+            // Give quiet moves a move ordering bonus for the nodes they took,
+            // relative to the first move. Such moves are hard to refute and
+            // likely to become the new best move.
+            if (moveCount == 1)
+                firstMoveNodes = std::max(u64(1), N);
+            else if (!capture)
+                lowPlyHistory[ss->ply][move.raw()]
+                  << int(std::min(u64(2048), 2048 * N / firstMoveNodes));
 
             // Exponential moving average parameters for root move
             constexpr u64 Scale          = 32;
