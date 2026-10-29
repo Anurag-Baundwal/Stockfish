@@ -1149,7 +1149,7 @@ moves_loop:  // When in check, search starts here
 
     value = bestValue;
 
-    int moveCount = 0;
+    int moveCount = 0, alphaRaiseCount = 0;
 
     // Step 14. Loop through all legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1393,6 +1393,9 @@ moves_loop:  // When in check, search starts here
         if (seekMate && r > 0)
             r += (givesCheck ? -r : r) / 4;
 
+        // Increase reduction if alpha has been raised
+        r += 384 * alphaRaiseCount;
+
         // Apply the computed LMR
         if (depth >= 2 && moveCount > 1)
         {
@@ -1553,6 +1556,7 @@ moves_loop:  // When in check, search starts here
             if (value + inc > alpha)
             {
                 bestMove = move;
+                ++alphaRaiseCount;
 
                 // Update PV even in fail-high case
                 if (PvNode && !rootNode)
