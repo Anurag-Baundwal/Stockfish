@@ -1149,7 +1149,8 @@ moves_loop:  // When in check, search starts here
 
     value = bestValue;
 
-    int moveCount = 0;
+    int  moveCount    = 0;
+    bool quadExtended = false;
 
     // Step 14. Loop through all legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1292,11 +1293,20 @@ moves_loop:  // When in check, search starts here
                                  - 1175 * ttMoveHistory / 114178 - (ss->ply > rootDepth) * 38;
                 int tripleMargin = 70 + 279 * PvNode - 188 * !ttCapture + 81 * ss->ttPv - corrValAdj
                                  - (ss->ply > rootDepth) * 43;
+                int quadMargin = 300 + 279 * PvNode - 188 * !ttCapture + 81 * ss->ttPv - corrValAdj;
 
-                extension =
-                  1 + (value < singularBeta - doubleMargin) + (value < singularBeta - tripleMargin);
+                // Quadruple extensions are only allowed in the upper half of the tree,
+                // so that they cannot pile up along a line and explode the search,
+                // and only when the tt entry is at least as deep as this node
+                extension = 1 + (value < singularBeta - doubleMargin)
+                          + (value < singularBeta - tripleMargin)
+                          + (2 * ss->ply < rootDepth && ttData.depth >= depth
+                             && value < singularBeta - quadMargin);
 
-                depth++;
+                // After a quadruple extension the other moves are clearly worse,
+                // so they are not searched deeper and are reduced more
+                quadExtended = extension == 4;
+                depth += !quadExtended;
             }
 
             // Multi-cut pruning
@@ -1361,6 +1371,10 @@ moves_loop:  // When in check, search starts here
         // Increase reduction if ttMove is a capture
         if (ttCapture)
             r += 1079;
+
+        // Increase reduction for the other moves if ttMove got a quadruple extension
+        if (quadExtended && move != ttData.move)
+            r += 512;
 
         // Increase reduction if next ply has a lot of fail high
         if ((ss + 1)->cutoffCnt > 1)
